@@ -308,14 +308,20 @@ def draw_frac(d, x, cy, num, den, size, color):
     return x + w + 10
 
 
+def _new_canvas(w, h, bg="white"):
+    """RGB с заливкой bg; bg=None → прозрачный RGBA (тёмные слайды)."""
+    if bg is None:
+        return Image.new("RGBA", (int(w), int(h)), (0, 0, 0, 0))
+    return Image.new("RGB", (int(w), int(h)), bg)
+
+
 def render_formula_strip(markup, size=30, fg="#0d47a1", bg=None, pad=14):
     """Формула-картинка (одна строка). bg=None -> прозрачный фон (для тёмных слайдов)."""
     tmp = Image.new("RGB", (10, 10), "white")
     td = ImageDraw.Draw(tmp)
     w = _markup_width(td, markup, size) + 2 * pad
     h = int(size * 2.1)
-    mode = "RGBA" if bg is None else "RGB"
-    img = Image.new(mode, (max(20, int(w)), int(h)), bg)
+    img = _new_canvas(max(20, int(w)), int(h), bg)
     d = ImageDraw.Draw(img)
     draw_markup(d, pad, size * 1.45, markup, size, fg)
     return img
@@ -339,12 +345,13 @@ def draw_copper_absorption_pil():
     # ── Левая панель: столбики ──
     d.rectangle([(20, 60), (420, 470)], outline="#bf360c", width=2)
     _draw_text(d, (32, 70), "Два окна обработки", fill="#bf360c", font=f)
-    base_y = 430
+    # ось выше, подписи — с зазором под ней, чтобы не наползали на горизонталь
+    base_y = 392
     scale = 300.0  # 60% -> 300 px
     # 1070 нм
     h1 = 0.05 * scale
     d.rectangle([(70, base_y - h1), (170, base_y)], fill="#e64a19", outline="#870000")
-    _draw_text(d, (75, base_y + 8), "1070 нм (ИК)", fill="#870000", font=fs)
+    _draw_text(d, (75, base_y + 18), "1070 нм (ИК)", fill="#870000", font=fs)
     _draw_text(d, (70, base_y - h1 - 26), "≈ 5%", fill="#870000", font=f)
     # 535 нм
     h2 = 0.60 * scale
@@ -352,12 +359,12 @@ def draw_copper_absorption_pil():
     d.line([(250, base_y - 0.40 * scale), (350, base_y - 0.40 * scale)], fill="#a5d6a7", width=2)
     # подпись НАД столбцом (на белом фоне), а не внутри зелёного
     _draw_text(d, (250, base_y - h2 - 26), "40–60%", fill="#1b5e20", font=f)
-    _draw_text(d, (255, base_y + 8), "535 нм (зелёный)", fill="#1b5e20", font=fs)
+    _draw_text(d, (255, base_y + 18), "535 нм (зелёный)", fill="#1b5e20", font=fs)
     # ось
     d.line([(50, 140), (50, base_y)], fill="#666", width=2)
     d.line([(50, base_y), (400, base_y)], fill="#666", width=2)
     _draw_text(d, (26, 128), "A, %", fill="#666", font=fxs)
-    _draw_text(d, (60, 460), "в 8–12 раз больше энергии в зону обработки", fill="#555", font=fxs)
+    _draw_text(d, (48, base_y + 40), "в 8–12 раз больше энергии в зону обработки", fill="#555", font=fxs)
 
     # ── Правая панель: схематичная кривая ──
     d.rectangle([(440, 60), (860, 470)], outline="#1565c0", width=2)
@@ -648,20 +655,19 @@ def draw_twopass_pil():
     _draw_text(d, (100, 393), "зелёный 535 нм", fill="#1b5e20", font=f)
     _draw_text(d, (100, 418), "→ 3D-печать / сварка меди", fill="#1b5e20", font=fs)
 
-    # ── нижняя сводка ──
-    d.rectangle([(30, 470), (860, 540)], outline="#cfd8dc", width=1)
+    # ── нижняя сводка (без рамки) ──
     for i, line in enumerate([
         "Печь: термостабилизация квазифазового синхронизма (иначе КПД падает почти до нуля).",
         "Кварцевый клин: активная компенсация набега фазы зеркала — печь и клин дополняют друг друга.",
         "Прецедент: Imeshev, Fejer (1998); новизна — киловаттный уровень мощности и внешняя термокомпенсация.",
     ]):
-        _draw_text(d, (42, 448 + i * 20), line, fill="#555", font=fxs)
+        _draw_text(d, (42, 462 + i * 20), line, fill="#555", font=fxs)
     return img
 
 
 def draw_sinc2_pil():
     """График sinc²(Δk·L/2): почему критично условие синхронизма."""
-    img = Image.new("RGB", (560, 420), "white")
+    img = Image.new("RGB", (560, 355), "white")
     d = ImageDraw.Draw(img)
     fh, f, fs = _pil_font(17, True), _pil_font(13), _pil_font(11)
 
@@ -697,7 +703,7 @@ def draw_sinc2_pil():
         "Точный подбор Λ (или подстройка температуры)",
         "держит sinc² близким к 1.",
     ]):
-        _draw_text(d, (30, 250 + i * 20), line, fill="#555", font=fs)
+        _draw_text(d, (22, 238 + i * 18), line, fill="#555", font=fs)
     return img
 
 
@@ -738,7 +744,7 @@ def draw_economy_pil():
 
 def formula_photon_energy(fg="#0d47a1", bg="white"):
     """E = hc/λ и расчёт для 535 нм."""
-    img = Image.new("RGB", (760, 170), bg)
+    img = _new_canvas(760, 170, bg)
     d = ImageDraw.Draw(img)
     draw_markup(d, 20, 60, "E = h·c / λ", 34, fg)
     draw_markup(d, 260, 60, "для λ = 535 нм:  E ≈ 3,7·10^{-19} Дж ≈ 2,3 эВ", 21, fg)
@@ -756,7 +762,7 @@ def formula_polarization_series(fg="#0d47a1", bg="white"):
 
 def formula_cos2(fg="#0d47a1", bg="white"):
     """Вывод через cos²(ωt)."""
-    img = Image.new("RGB", (820, 250), bg)
+    img = _new_canvas(820, 250, bg)
     d = ImageDraw.Draw(img)
     draw_markup(d, 20, 50, "E(t) = E_{0}·cos(ω·t),      ω = 2π·c / λ", 24, fg)
     draw_markup(d, 20, 120, "P^{(2)}(t) ∝ χ^{(2)}·E_{0}^{2}·cos^{2}(ω·t)", 26, fg)
@@ -770,18 +776,18 @@ def formula_sync_condition(fg="#0d47a1", bg="white"):
 
 def formula_efficiency(fg="#0d47a1", bg="white"):
     """η = P₂ω/P_ω · (2ω²d²eff L²)/(ε₀c³n²ω n₂ω) · (P_ω/A) · sinc²(ΔkL/2)."""
-    w, h = 860, 320
-    img = Image.new("RGB", (w, h), bg)
+    w, h = 900, 185
+    img = _new_canvas(w, h, bg)
     d = ImageDraw.Draw(img)
-    size = 30
-    x = draw_markup(d, 24, 165, "η  =", 34, fg)
-    x = draw_frac(d, x, 160, "P_{2ω}", "P_{ω}", 30, fg)
-    x = draw_markup(d, x, 160, "·", 30, fg)
-    x = draw_frac(d, x, 160, "2ω^{2}·d^{2}_{eff}·L^{2}", "ε_{0}·c^{3}·n^{2}_{ω}·n_{2ω}", 30, fg)
-    x = draw_markup(d, x, 160, "·", 30, fg)
-    x = draw_frac(d, x, 160, "P_{ω}", "A", 30, fg)
-    x = draw_markup(d, x, 160, "·  sinc²( Δk·L/2 )", 30, fg)
-    draw_markup(d, 24, 290, "(уравнения связанных волн, приближение неистощённой накачки)", 16, "#8899aa" if bg is None else "#666")
+    cy = 82
+    x = draw_markup(d, 16, cy + 4, "η  =", 30, fg)
+    x = draw_frac(d, x, cy, "P_{2ω}", "P_{ω}", 26, fg)
+    x = draw_markup(d, x, cy, "·", 26, fg)
+    x = draw_frac(d, x, cy, "2ω^{2}·d^{2}_{eff}·L^{2}", "ε_{0}·c^{3}·n^{2}_{ω}·n_{2ω}", 26, fg)
+    x = draw_markup(d, x, cy, "·", 26, fg)
+    x = draw_frac(d, x, cy, "P_{ω}", "A", 26, fg)
+    x = draw_markup(d, x, cy, "·  sinc²( Δk·L/2 )", 26, fg)
+    draw_markup(d, 16, 162, "(уравнения связанных волн, приближение неистощённой накачки)", 14, "#8899aa" if bg is None else "#666")
     return img
 
 
@@ -1049,8 +1055,8 @@ def build_pptx():
         _fill_rich(p, tx, sz, LT if c is None else c, b)
         return tb
 
-    def bullets(s, items, left=1.5, top=1.55, w=6.2, sz=17, space=10):
-        tb = s.shapes.add_textbox(Inches(left), Inches(top), Inches(w), Inches(5.6))
+    def bullets(s, items, left=1.5, top=1.55, w=6.2, sz=17, space=10, height=5.6):
+        tb = s.shapes.add_textbox(Inches(left), Inches(top), Inches(w), Inches(height))
         tf = tb.text_frame
         tf.word_wrap = True
         for i, it in enumerate(items):
@@ -1093,10 +1099,21 @@ def build_pptx():
                 cell.fill.fore_color.rgb = bgc
         return tbl
 
-    def add_pic(s, img, left, top, width):
+    def add_pic(s, img, left, top, width, max_right=13.05, max_bottom=7.28):
+        """Вставка PNG с сохранением пропорций; не выходит за край слайда 13,333×7,5″."""
+        w_px, h_px = img.size
+        height = width * h_px / float(w_px)
+        if left + width > max_right:
+            width = max(0.4, max_right - left)
+            height = width * h_px / float(w_px)
+        if top + height > max_bottom:
+            height = max(0.4, max_bottom - top)
+            width = height * w_px / float(h_px)
         png = os.path.join(tmpdir, f"pic_{abs(hash((left, top, width, id(img)))) % 99999}.png")
         save_pil_image(img, png)
-        return s.shapes.add_picture(png, Inches(left), Inches(top), width=Inches(width))
+        return s.shapes.add_picture(
+            png, Inches(left), Inches(top), width=Inches(width), height=Inches(height),
+        )
 
     # ── Слайд 1: титульный ──
     s = prs.slides.add_slide(prs.slide_layouts[6])
@@ -1162,7 +1179,7 @@ def build_pptx():
         "Условие синхронизма: Δk = k_{2ω} − 2k_{ω} = 2π/Λ",
     ], 0.5, 1.42, 5.5, 12.5, 8)
     add_table(s, CHI_TABLE, 6.25, 1.4, 6.9, 2.4, font=10, col_widths=[0.9, 2.5, 1.0, 2.4])
-    add_pic(s, draw_shg_ppln_pil(), 6.25, 4.05, 6.85)
+    add_pic(s, draw_shg_ppln_pil(), 6.25, 3.95, 5.9)
 
     # ── Слайд 6: двухпроходная схема ──
     s = prs.slides.add_slide(prs.slide_layouts[6])
@@ -1175,10 +1192,10 @@ def build_pptx():
         "dn/dT ≈ +9·10^{-6} К^{-1}; прозрачен на 1070 и 535 нм",
         "Прецедент: Imeshev, Fejer (1998); новизна — киловаттный масштаб",
         "Экономика: на порядок дешевле готового зелёного лазера",
-    ], 0.5, 1.42, 4.6, 12, 9)
-    add_pic(s, draw_sinc2_pil(), 0.5, 5.15, 4.6)
-    add_pic(s, draw_twopass_pil(), 5.35, 1.4, 7.75)
-    add_pic(s, formula_efficiency(fg="#bde0ff", bg=None), 5.5, 5.6, 7.4)
+    ], 0.45, 1.38, 4.7, 12, 6, 3.05)
+    add_pic(s, draw_sinc2_pil(), 0.45, 4.42, 4.55)
+    add_pic(s, draw_twopass_pil(), 5.28, 1.36, 6.65)
+    add_pic(s, formula_efficiency(fg="#bde0ff", bg=None), 5.28, 5.62, 7.65)
 
     # ── Слайд 7: итоговые тезисы ──
     s = prs.slides.add_slide(prs.slide_layouts[6])
@@ -1189,8 +1206,8 @@ def build_pptx():
         "3. SHG в PPLN: 1070 нм → 535 нм с КПД до 15–20%",
         "4. Двухпроходная схема с активной клиновидной термокомпенсацией из плавленого кварца — новая инженерная задача на киловаттном уровне",
         "5. Реализация на порядок дешевле покупки готового зелёного лазера",
-    ], 0.9, 1.55, 11.5, 16, 14)
-    add_pic(s, draw_economy_pil(), 3.3, 5.0, 6.7)
+    ], 0.7, 1.45, 11.9, 15, 8, 2.55)
+    add_pic(s, draw_economy_pil(), 3.35, 4.05, 6.6)
 
     # ── Слайд 8: заключение ──
     s = prs.slides.add_slide(prs.slide_layouts[6])
