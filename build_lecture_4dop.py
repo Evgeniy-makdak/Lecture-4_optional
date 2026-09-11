@@ -36,12 +36,27 @@ PDF_PATH = os.path.join(BASE, "Лекция_4доп_Раскадровка_дл�
 
 
 def _detect_font():
-    for p in [
-        os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "arial.ttf"),
-        os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts", "segoeui.ttf"),
-    ]:
+    # Кандидаты: Windows -> Linux (Liberation/DejaVu) -> macOS. Все — с кириллицей.
+    windir = os.environ.get("WINDIR", r"C:\Windows")
+    cands = [
+        (os.path.join(windir, "Fonts", "arial.ttf"),
+         os.path.join(windir, "Fonts", "arialbd.ttf")),
+        (os.path.join(windir, "Fonts", "segoeui.ttf"),
+         os.path.join(windir, "Fonts", "segoeuib.ttf")),
+        ("/usr/share/fonts/liberation-sans/LiberationSans-Regular.ttf",
+         "/usr/share/fonts/liberation-sans/LiberationSans-Bold.ttf"),
+        ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
+        ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+        ("/usr/share/fonts/dejavu/DejaVuSans.ttf",
+         "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf"),
+        ("/Library/Fonts/Arial.ttf", "/Library/Fonts/Arial Bold.ttf"),
+        ("/System/Library/Fonts/Supplemental/Arial.ttf",
+         "/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
+    ]
+    for p, bold in cands:
         if os.path.exists(p):
-            bold = p.replace("arial.ttf", "arialbd.ttf").replace("segoeui.ttf", "segoeuib.ttf")
             return p, bold if os.path.exists(bold) else p
     return None, None
 
@@ -52,6 +67,12 @@ def _detect_math_font():
         os.path.join(windir, "Fonts", "timesi.ttf"),
         os.path.join(windir, "Fonts", "cambriai.ttf"),
         os.path.join(windir, "Fonts", "times.ttf"),
+        "/usr/share/fonts/liberation-serif/LiberationSerif-Italic.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSerif-Italic.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Italic.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSerif-Italic.ttf",
+        "/Library/Fonts/Times Italic.ttf",
+        "/System/Library/Fonts/Supplemental/Times New Roman Italic.ttf",
     ]:
         if os.path.exists(p):
             return p
@@ -65,6 +86,11 @@ if FONT_PATH:
     pdfmetrics.registerFont(TTFont("CyrFontBold", FONT_BOLD_PATH or FONT_PATH))
     PDF_FONT, PDF_FONT_BOLD = "CyrFont", "CyrFontBold"
 else:
+    print(
+        "WARNING: не найден TTF-шрифт с кириллицей (Arial/Segoe/DejaVu/Liberation). "
+        "PDF будет собран на Helvetica — кириллица отобразится квадратиками! "
+        "Установите шрифт с кириллицей и перезапустите сборку."
+    )
     PDF_FONT, PDF_FONT_BOLD = "Helvetica", "Helvetica-Bold"
 
 if MATH_FONT_PATH:
